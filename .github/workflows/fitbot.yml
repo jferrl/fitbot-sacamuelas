@@ -15,12 +15,7 @@ jobs:
         env:
           email: ${{ secrets.AH_EMAIL }}
           password: ${{ secrets.AH_PASSWORD }}
-          # Lunes(0) a Viernes(4) a las 08:00 buscando clases que contengan "WOD".
-          # Si tu box usa otro nombre (p.ej. "CrossFit", "WOD 60"), cambia "name".
-          booking-goals: >-
-            {"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},
-             "2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},
-             "4":{"time":"0800","name":"CrossFit"}}
+          booking-goals: ${{ secrets.BOOKING_GOALS }}
           box-name: ${{ secrets.BOX_NAME }}
           box-id: ${{ secrets.BOX_ID }}
           days-in-advance: 2
