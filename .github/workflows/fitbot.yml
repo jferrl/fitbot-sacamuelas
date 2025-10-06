@@ -7,9 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  book:
+  run:
     runs-on: ubuntu-latest
     steps:
-      - name: Run FitBot in Docker (CLI flags)
-        run:  docker run -e email=${{ secrets.EMAIL }} -e password=${{ secrets.PASSWORD }} -e booking-goals={'\"0\":{\"time\":\"1920\"\,\"name\":\"WOD\"}\,\"1\":{\"time\":\"1920\"\,\"name\":\"Endurance\"}\,\"3\":{\"time\":\"1920\"\,\"name\":\"WOD\"}'} -e box-name=${{ secrets.BOX_NAME }} -e box-id=${{ secrets.BOX_ID }} -e days-in-advance=${{ secrets.DAYS_IN_ADVANCE }} pablobuenaposada/fitbot
-
+      - name: Run fitbot
+        run: docker run -e email=${{ secrets.EMAIL }} -e password=${{ secrets.PASSWORD }} -e booking-goals={'\"0\":{\"time\":\"0800\"\,\"name\":\"CrossFit\"}\,\"1\":{\"time\":\"0800\"\,\"name\":\"CrossFit\"}\,\"3\":{\"time\":\"0800\"\,\"name\":\"CrossFit\"}'} -e box-name=crossfitgerak -e box-id=10287 -e days-in-advance=2 -e proxy=${{ secrets.PROXY }} pablobuenaposada/fitbot
