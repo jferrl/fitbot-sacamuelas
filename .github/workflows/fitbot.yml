@@ -16,7 +16,7 @@ jobs:
           docker run --rm \
             -e email='${{ secrets.AH_EMAIL }}' \
             -e password='${{ secrets.AH_PASSWORD }}' \
-            -e 'booking-goals=${{ secrets.BOOKING_GOALS_ESCAPED }}' \
+            -e 'booking-goals=${{ secrets.BOOKING_GOALS_JSON }}' \
             -e 'box-name=${{ secrets.BOX_NAME }}' \
             -e 'box-id=${{ secrets.BOX_ID }}' \
             -e 'days-in-advance=${{ secrets.DAYS_IN_ADVANCE }}' \
