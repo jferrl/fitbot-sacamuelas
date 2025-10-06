@@ -11,4 +11,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run fitbot
-        run: docker run -e email=${{ secrets.EMAIL }} -e password=${{ secrets.PASSWORD }} -e booking-goals={'\"0\":{\"time\":\"0800\"\,\"name\":\"CrossFit\"}\,\"1\":{\"time\":\"0800\"\,\"name\":\"CrossFit\"}\,\"3\":{\"time\":\"0800\"\,\"name\":\"CrossFit\"}'} -e box-name=crossfitgerak -e box-id=10287 -e days-in-advance=2 -e proxy=${{ secrets.PROXY }} pablobuenaposada/fitbot
+        run: docker run -e email=${{ secrets.AH_EMAIL }} -e password=${{ secrets.AH_PASSWORD }} -e booking-goals={'\"0\":{\"time\":\"0800\"\,\"name\":\"CrossFit\"}\,\"1\":{\"time\":\"0800\"\,\"name\":\"CrossFit\"}\,\"3\":{\"time\":\"0800\"\,\"name\":\"CrossFit\"}'} -e box-name=crossfitgerak -e box-id=10287 -e days-in-advance=2 -e proxy=${{ secrets.PROXY }} pablobuenaposada/fitbot
