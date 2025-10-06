@@ -13,22 +13,22 @@ jobs:
     steps:
       - name: Run FitBot in Docker
         env:
-          email: ${{ secrets.AH_EMAIL }}
-          password: ${{ secrets.AH_PASSWORD }}
-          booking-goals: ${{ secrets.BOOKING_GOALS }}
-          box-name: ${{ secrets.BOX_NAME }}
-          box-id: ${{ secrets.BOX_ID }}
-          days-in-advance: 2
-          family-id: ${{ secrets.FAMILY_ID }}
-          proxy: ${{ secrets.PROXY }}
+          AH_EMAIL: ${{ secrets.AH_EMAIL }}
+          AH_PASSWORD: ${{ secrets.AH_PASSWORD }}
+          BOX_NAME: ${{ secrets.BOX_NAME }}
+          BOX_ID: ${{ secrets.BOX_ID }}     
+          DAYS_IN_ADVANCE: ${{ secrets.DAYS_IN_ADVANCE }} 
+          FAMILY_ID: ${{ secrets.FAMILY_ID }}
+          PROXY: ${{ secrets.PROXY }}
+          BOOKING_GOALS_JSON: ${{ secrets.BOOKING_GOALS_JSON }}
         run: |
           docker run --rm \
-            -e email \
-            -e password \
-            -e booking-goals \
-            -e box-name \
-            -e box-id \
-            -e days-in-advance \
-            -e family-id \
-            -e proxy \
+            -e email="$AH_EMAIL" \
+            -e password="$AH_PASSWORD" \
+            -e "booking-goals=$BOOKING_GOALS_JSON" \
+            -e "box-name=$BOX_NAME" \
+            -e "box-id=$BOX_ID" \
+            -e "days-in-advance=$DAYS_IN_ADVANCE" \
+            -e "family-id=$FAMILY_ID" \
+            -e "proxy=$PROXY" \
             pablobuenaposada/fitbot
