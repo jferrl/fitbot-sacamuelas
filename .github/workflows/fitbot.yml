@@ -1,0 +1,39 @@
+name: FitBot (daily)
+
+on:
+  schedule:
+    # 06:05 UTC = 08:05 Europe/Madrid (en horario de verano).
+    - cron: "55 7 * * *"      # 09:55 local
+    - cron: "0-30/5 8 * * *"  # 10:00..10:30 local, cada 5 min
+  workflow_dispatch:
+
+jobs:
+  book:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run FitBot in Docker
+        env:
+          email: ${{ secrets.AH_EMAIL }}
+          password: ${{ secrets.AH_PASSWORD }}
+          # Lunes(0) a Viernes(4) a las 08:00 buscando clases que contengan "WOD".
+          # Si tu box usa otro nombre (p.ej. "CrossFit", "WOD 60"), cambia "name".
+          booking-goals: >-
+            {"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},
+             "2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},
+             "4":{"time":"0800","name":"CrossFit"}}
+          box-name: ${{ secrets.BOX_NAME }}
+          box-id: ${{ secrets.BOX_ID }}
+          days-in-advance: 2
+          family-id: ${{ secrets.FAMILY_ID }}
+          proxy: ${{ secrets.PROXY }}
+        run: |
+          docker run --rm \
+            -e email \
+            -e password \
+            -e booking-goals \
+            -e box-name \
+            -e box-id \
+            -e days-in-advance \
+            -e family-id \
+            -e proxy \
+            pablobuenaposada/fitbot
