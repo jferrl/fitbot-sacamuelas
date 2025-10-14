@@ -15,7 +15,7 @@ jobs:
             box_name: crossfitgerak
             box_id: 10287
             days_in_advance: 2
-            booking_goals_raw: "{\"0\":{\"time\":\"0800\",\"name\":\"CrossFit\"},\"1\":{\"time\":\"0800\",\"name\":\"CrossFit\"},\"2\":{\"time\":\"0800\",\"name\":\"CrossFit\"},\"3\":{\"time\":\"0800\",\"name\":\"CrossFit\"},\"4\":{\"time\":\"0800\",\"name\":\"CrossFit\"}}"
+            booking_goals_raw: "'{\"0\":{\"time\":\"0800\"\\,\"name\":\"CrossFit\"}\\,\"1\":{\"time\":\"0800\"\\,\"name\":\"CrossFit\"}\\,\"2\":{\"time\":\"0800\"\\,\"name\":\"CrossFit\"}\\,\"3\":{\"time\":\"0800\"\\,\"name\":\"CrossFit\"}\\,\"4\":{\"time\":\"0800\"\\,\"name\":\"CrossFit\"}}'"
           # Add more users here:
           # - name: "User 2"
           #   email_secret: AH_EMAIL_2
@@ -38,11 +38,11 @@ jobs:
           PROXY: ${{ secrets.PROXY }}
         run: |
           docker run \
-            -e email="$USER_EMAIL" \
-            -e password="$USER_PASSWORD" \
-            -e booking-goals="$BOOKING_GOALS" \
-            -e box-name="$BOX_NAME" \
-            -e box-id="$BOX_ID" \
-            -e days-in-advance="$DAYS_IN_ADVANCE" \
-            -e proxy="$PROXY" \
+            -e "email=$USER_EMAIL" \
+            -e "password=$USER_PASSWORD" \
+            -e booking-goals=$BOOKING_GOALS \
+            -e "box-name=$BOX_NAME" \
+            -e "box-id=$BOX_ID" \
+            -e "days-in-advance=$DAYS_IN_ADVANCE" \
+            -e "proxy=$PROXY" \
             pablobuenaposada/fitbot
