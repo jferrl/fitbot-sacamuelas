@@ -27,33 +27,39 @@ jobs:
       fail-fast: false  # Continue running other jobs even if one fails
     name: Run fitbot for ${{ matrix.user.name }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
       - name: Cache Docker image
         id: cache-docker
         uses: actions/cache@v4
         with:
           path: /tmp/fitbot-image.tar
-          key: docker-fitbot-${{ github.run_id }}
+          key: docker-fitbot-${{ github.run_id }}-${{ hashFiles('Makefile', 'Dockerfile', 'src/**') }}
           restore-keys: |
+            docker-fitbot-${{ github.run_id }}-
             docker-fitbot-
       
       - name: Load cached Docker image
         if: steps.cache-docker.outputs.cache-hit == 'true'
         run: docker load -i /tmp/fitbot-image.tar
       
-      - name: Pull and cache Docker image
+      - name: Build and cache Docker image
         if: steps.cache-docker.outputs.cache-hit != 'true'
         run: |
-          docker pull pablobuenaposada/fitbot
-          docker save pablobuenaposada/fitbot -o /tmp/fitbot-image.tar
+          make docker/build
+          docker save fitbot -o /tmp/fitbot-image.tar
       
       - name: Run fitbot for ${{ matrix.user.name }}
+        env:
+          BOOKING_GOALS_JSON: ${{ matrix.user.booking_goals_raw }}
         run: |
           docker run \
-            -e email='${{ secrets[matrix.user.email_secret] }}' \
-            -e password='${{ secrets[matrix.user.password_secret] }}' \
-            -e booking-goals='${{ matrix.user.booking_goals_raw }}' \
-            -e box-name='${{ matrix.user.box_name }}' \
-            -e box-id='${{ matrix.user.box_id }}' \
-            -e days-in-advance='${{ matrix.user.days_in_advance }}' \
-            -e proxy='${{ secrets.PROXY }}' \
-            pablobuenaposada/fitbot
+            -e "email=${{ secrets[matrix.user.email_secret] }}" \
+            -e "password=${{ secrets[matrix.user.password_secret] }}" \
+            -e "booking-goals=$BOOKING_GOALS_JSON" \
+            -e "box-name=${{ matrix.user.box_name }}" \
+            -e "box-id=${{ matrix.user.box_id }}" \
+            -e "days-in-advance=${{ matrix.user.days_in_advance }}" \
+            -e "proxy=${{ secrets.PROXY }}" \
+            fitbot
