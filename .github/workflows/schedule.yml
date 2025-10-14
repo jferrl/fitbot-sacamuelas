@@ -41,9 +41,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/fitbot-image.tar
-          key: docker-fitbot-${{ github.run_id }}-${{ hashFiles('Makefile', 'Dockerfile', 'src/**') }}
+          key: docker-fitbot-${{ hashFiles('Makefile', 'Dockerfile', 'src/**', 'pyproject.toml', 'uv.lock') }}
           restore-keys: |
-            docker-fitbot-${{ github.run_id }}-
             docker-fitbot-
       
       - name: Load cached Docker image
