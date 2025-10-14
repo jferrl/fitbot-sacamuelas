@@ -12,6 +12,9 @@ jobs:
           - name: "Sacamuelas"
             email_secret: AH_EMAIL
             password_secret: AH_PASSWORD
+            box_name: crossfitgerak
+            box_id: 10287
+            days_in_advance: 2
             booking_goals: '{"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},"2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},"4":{"time":"0800","name":"CrossFit"}}'
           # Add more users here:
           # - name: "User 2"
@@ -22,15 +25,13 @@ jobs:
     name: Run fitbot for ${{ matrix.user.name }}
     steps:
       - name: Run fitbot for ${{ matrix.user.name }}
-        env:
-          BOOKING_GOALS: ${{ matrix.user.booking_goals }}
         run: |
           docker run \
-            -e email=${{ secrets[matrix.user.email_secret] }} \
-            -e password=${{ secrets[matrix.user.password_secret] }} \
-            -e booking-goals="$BOOKING_GOALS" \
-            -e box-name=crossfitgerak \
-            -e box-id=10287 \
-            -e days-in-advance=2 \
-            -e proxy=${{ secrets.PROXY }} \
+            -e "email=${{ secrets[matrix.user.email_secret] }}" \
+            -e "password=${{ secrets[matrix.user.password_secret] }}" \
+            -e 'booking-goals=${{ matrix.user.booking_goals }}' \
+            -e "box-name=${{ matrix.user.box_name }}" \
+            -e "box-id=${{ matrix.user.box_id }}" \
+            -e "days-in-advance=${{ matrix.user.days_in_advance }}" \
+            -e "proxy=${{ secrets.PROXY }}" \
             pablobuenaposada/fitbot
