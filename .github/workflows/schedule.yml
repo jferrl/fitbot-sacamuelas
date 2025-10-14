@@ -28,4 +28,17 @@ jobs:
     name: Run fitbot for ${{ matrix.user.name }}
     steps:
       - name: Run fitbot for ${{ matrix.user.name }}
-        run: docker run -e email=${{ secrets[matrix.user.email_secret] }} -e password=${{ secrets[matrix.user.password_secret] }} -e booking-goals=${{ toJSON(matrix.user.booking_goals_raw) }} -e box-name=${{ matrix.user.box_name }} -e box-id=${{ matrix.user.box_id }} -e days-in-advance=${{ matrix.user.days_in_advance }} -e proxy=${{ secrets.PROXY }} pablobuenaposada/fitbot
+        run: |
+          cat << 'EOF' > /tmp/booking-goals.json
+          ${{ matrix.user.booking_goals_raw }}
+          EOF
+          BOOKING_JSON=$(cat /tmp/booking-goals.json)
+          docker run \
+            -e email=${{ secrets[matrix.user.email_secret] }} \
+            -e password=${{ secrets[matrix.user.password_secret] }} \
+            -e "booking-goals=$BOOKING_JSON" \
+            -e box-name=${{ matrix.user.box_name }} \
+            -e box-id=${{ matrix.user.box_id }} \
+            -e days-in-advance=${{ matrix.user.days_in_advance }} \
+            -e proxy=${{ secrets.PROXY }} \
+            pablobuenaposada/fitbot
