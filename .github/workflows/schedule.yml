@@ -22,4 +22,15 @@ jobs:
     name: Run fitbot for ${{ matrix.user.name }}
     steps:
       - name: Run fitbot for ${{ matrix.user.name }}
-        run: docker run -e email=${{ secrets[matrix.user.email_secret] }} -e password=${{ secrets[matrix.user.password_secret] }} -e booking-goals='${{ matrix.user.booking_goals }}' -e box-name=crossfitgerak -e box-id=10287 -e days-in-advance=2 -e proxy=${{ secrets.PROXY }} pablobuenaposada/fitbot
+        env:
+          BOOKING_GOALS: ${{ matrix.user.booking_goals }}
+        run: |
+          docker run \
+            -e email=${{ secrets[matrix.user.email_secret] }} \
+            -e password=${{ secrets[matrix.user.password_secret] }} \
+            -e booking-goals="$BOOKING_GOALS" \
+            -e box-name=crossfitgerak \
+            -e box-id=10287 \
+            -e days-in-advance=2 \
+            -e proxy=${{ secrets.PROXY }} \
+            pablobuenaposada/fitbot
