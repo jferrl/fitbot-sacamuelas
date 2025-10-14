@@ -38,11 +38,11 @@ jobs:
           PROXY: ${{ secrets.PROXY }}
         run: |
           docker run \
-            -e "email=$USER_EMAIL" \
-            -e "password=$USER_PASSWORD" \
-            -e booking-goals="$BOOKING_GOALS" \
-            -e "box-name=$BOX_NAME" \
-            -e "box-id=$BOX_ID" \
-            -e "days-in-advance=$DAYS_IN_ADVANCE" \
-            -e "proxy=$PROXY" \
+            -e email="$USER_EMAIL" \
+            -e password="$USER_PASSWORD" \
+            -e booking-goals='${{ matrix.user.booking_goals_raw }}' \
+            -e box-name="$BOX_NAME" \
+            -e box-id="$BOX_ID" \
+            -e days-in-advance="$DAYS_IN_ADVANCE" \
+            -e proxy="$PROXY" \
             pablobuenaposada/fitbot
