@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         user:
-          - name: "Sacamuelas"
+          - name: "Guille"
             email_secret: AH_EMAIL
             password_secret: AH_PASSWORD
             box_name: crossfitgerak
