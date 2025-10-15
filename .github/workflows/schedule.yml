@@ -2,9 +2,37 @@ name: FitBot (daily)
 
 on:
   workflow_dispatch:
-  
+
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.key }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Generate cache key
+        id: cache-key
+        run: echo "key=docker-fitbot-${{ hashFiles('Makefile', 'Dockerfile', 'src/**', 'pyproject.toml', 'uv.lock') }}" >> $GITHUB_OUTPUT
+      
+      - name: Cache Docker image
+        id: cache-docker
+        uses: actions/cache@v4
+        with:
+          path: /tmp/fitbot-image.tar
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            docker-fitbot-
+      
+      - name: Build and cache Docker image
+        if: steps.cache-docker.outputs.cache-hit != 'true'
+        run: |
+          make docker/build
+          docker save fitbot -o /tmp/fitbot-image.tar
+  
   run:
+    needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -50,24 +78,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Cache Docker image
-        id: cache-docker
-        uses: actions/cache@v4
+      - name: Restore Docker image from cache
+        uses: actions/cache/restore@v4
         with:
           path: /tmp/fitbot-image.tar
-          key: docker-fitbot-${{ hashFiles('Makefile', 'Dockerfile', 'src/**', 'pyproject.toml', 'uv.lock') }}
-          restore-keys: |
-            docker-fitbot-
+          key: ${{ needs.build.outputs.cache-key }}
+          fail-on-cache-miss: true
       
-      - name: Load cached Docker image
-        if: steps.cache-docker.outputs.cache-hit == 'true'
+      - name: Load Docker image
         run: docker load -i /tmp/fitbot-image.tar
-      
-      - name: Build and cache Docker image
-        if: steps.cache-docker.outputs.cache-hit != 'true'
-        run: |
-          make docker/build
-          docker save fitbot -o /tmp/fitbot-image.tar
       
       - name: Run fitbot for ${{ matrix.user.name }}
         env:
