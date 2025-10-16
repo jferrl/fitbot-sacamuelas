@@ -72,6 +72,20 @@ jobs:
             box_id: 10287
             days_in_advance: 2
             booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},"2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},"4":{"time":"0800","name":"CrossFit"}}'
+          - name: "Adrian"
+            email_secret: ADRIAN_EMAIL
+            password_secret: ADRIAN_PASSWORD
+            box_name: crossfitgerak
+            box_id: 10287
+            days_in_advance: 2
+            booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},"2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},"4":{"time":"0800","name":"CrossFit"}}'
+          - name: "Adrian Lombas"
+            email_secret: ADRIAN_LOMBAS_EMAIL
+            password_secret: ADRIAN_LOMBAS_PASSWORD
+            box_name: crossfitgerak
+            box_id: 10287
+            days_in_advance: 2
+            booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},"2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},"4":{"time":"0800","name":"CrossFit"}}'
       fail-fast: false  # Continue running other jobs even if one fails
     name: Run fitbot for ${{ matrix.user.name }}
     steps:
