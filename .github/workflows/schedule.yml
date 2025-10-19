@@ -101,10 +101,11 @@ jobs:
           BOOKING_GOALS_JSON: ${{ matrix.user.booking_goals_raw }}
         with:
           timeout_minutes: 5
-          max_attempts: 3
+          max_attempts: 5
           retry_wait_seconds: 0
+          retry_on: error
           command: |
-            docker run \
+            OUTPUT=$(docker run \
               -e "email=${{ secrets[matrix.user.email_secret] }}" \
               -e "password=${{ secrets[matrix.user.password_secret] }}" \
               -e "booking-goals=$BOOKING_GOALS_JSON" \
@@ -112,4 +113,12 @@ jobs:
               -e "box-id=${{ matrix.user.box_id }}" \
               -e "days-in-advance=${{ matrix.user.days_in_advance }}" \
               -e "proxy=${{ secrets.PROXY }}" \
-              fitbot
+              fitbot 2>&1) || EXIT_CODE=$?
+            echo "$OUTPUT"
+            if [ ! -z "$EXIT_CODE" ]; then
+              if echo "$OUTPUT" | grep -q "Too soon to book the class"; then
+                exit 1  # Retriable error
+              else
+                exit $EXIT_CODE  # Non-retriable error, will still retry but you'll see the original error
+              fi
+            fi
