@@ -99,9 +99,9 @@ jobs:
         env:
           BOOKING_GOALS_JSON: ${{ matrix.user.booking_goals_raw }}
         run: |
-          for i in {1..5}; do
+          for i in {1..10}; do
             echo "=== Attempt $i for ${{ matrix.user.name }} ==="
-            docker run \
+            OUTPUT=$(docker run \
               -e "email=${{ secrets[matrix.user.email_secret] }}" \
               -e "password=${{ secrets[matrix.user.password_secret] }}" \
               -e "booking-goals=$BOOKING_GOALS_JSON" \
@@ -109,10 +109,16 @@ jobs:
               -e "box-id=${{ matrix.user.box_id }}" \
               -e "days-in-advance=${{ matrix.user.days_in_advance }}" \
               -e "proxy=${{ secrets.PROXY }}" \
-              fitbot
-            echo "Attempt $i completed"
-            if [ $i -lt 5 ]; then
-              echo "⏳ Waiting 5 seconds before next attempt..."
-              sleep 5
+              fitbot 2>&1)
+            
+            echo "$OUTPUT"
+            
+            if echo "$OUTPUT" | grep -q "Class booked successfully\|Class already booked. Nothing to do"; then
+              echo "✅ SUCCESS: Booking completed successfully on attempt $i"
+              exit 0
+            else
+              echo "❌ Attempt $i completed - continuing..."
             fi
           done
+          echo "💥 All 10 attempts completed without finding booking success message"
+          exit 1
