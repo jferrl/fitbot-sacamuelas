@@ -95,15 +95,12 @@ jobs:
       - name: Load Docker image
         run: docker load -i /tmp/fitbot-image.tar
       
-      - name: Run fitbot for ${{ matrix.user.name }}
-        uses: nick-fields/retry@v3
+      - name: Run fitbot for ${{ matrix.user.name }} (with retry)
+        uses: Wandalen/wretry.action@v3
         env:
           BOOKING_GOALS_JSON: ${{ matrix.user.booking_goals_raw }}
         with:
-          timeout_minutes: 5
-          max_attempts: 3
-          retry_wait_seconds: 0
-          retry_on: any
+          attempt_limit: 3
           command: |
             docker run \
               -e "email=${{ secrets[matrix.user.email_secret] }}" \
