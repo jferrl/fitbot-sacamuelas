@@ -13,14 +13,20 @@ COPY pyproject.toml uv.lock ./
 # Create virtual environment and install dependencies
 RUN uv venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-RUN uv sync --frozen --no-dev
+RUN uv pip install --python /opt/venv/bin/python beautifulsoup4 pysocks requests
 
 # Final stage - minimal runtime image
 FROM python:3.13-slim
 
+# Install make and other essential tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy virtual environment from builder stage
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+ENV VIRTUAL_ENV="/opt/venv"
 
 # Set environment variables
 ENV PYTHONPATH=src
@@ -34,4 +40,4 @@ COPY Makefile /app/
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 USER appuser
 
-CMD ["make", "run"]
+CMD ["make", "docker-run"]
