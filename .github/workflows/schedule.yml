@@ -96,10 +96,12 @@ jobs:
         run: docker load -i /tmp/fitbot-image.tar
       
       - name: Run fitbot for ${{ matrix.user.name }} (with retry)
+        timeout-minutes: 5
         env:
           BOOKING_GOALS_JSON: ${{ matrix.user.booking_goals_raw }}
         run: |
-          for i in {1..10}; do
+          i=1
+          while true; do
             echo "=== Attempt $i for ${{ matrix.user.name }} ==="
             OUTPUT=$(docker run \
               -e "email=${{ secrets[matrix.user.email_secret] }}" \
@@ -118,7 +120,6 @@ jobs:
               exit 0
             else
               echo "❌ Attempt $i completed - continuing..."
+              i=$((i + 1))
             fi
           done
-          echo "💥 All 10 attempts completed without finding booking success message"
-          exit 1
