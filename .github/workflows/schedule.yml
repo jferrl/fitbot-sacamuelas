@@ -118,6 +118,10 @@ jobs:
             if echo "$OUTPUT" | grep -q "Class booked successfully\|Class already booked. Nothing to do"; then
               echo "✅ SUCCESS: Booking completed successfully on attempt $i"
               exit 0
+            elif echo "$OUTPUT" | grep -q "There is no booking-goal for\|No class with the text\|Box is closed\|No credit available\|Too many wrong attempts\|Incorrect credentials"; then
+              echo "❌ FATAL ERROR: Non-retriable error found on attempt $i"
+              echo "$OUTPUT"
+              exit 1
             else
               echo "❌ Attempt $i completed - continuing..."
               i=$((i + 1))
