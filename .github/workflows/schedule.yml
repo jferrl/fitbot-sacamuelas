@@ -101,7 +101,7 @@ jobs:
         run: |
           for i in {1..5}; do
             echo "=== Attempt $i for ${{ matrix.user.name }} ==="
-            if docker run \
+            docker run \
               -e "email=${{ secrets[matrix.user.email_secret] }}" \
               -e "password=${{ secrets[matrix.user.password_secret] }}" \
               -e "booking-goals=$BOOKING_GOALS_JSON" \
@@ -109,14 +109,6 @@ jobs:
               -e "box-id=${{ matrix.user.box_id }}" \
               -e "days-in-advance=${{ matrix.user.days_in_advance }}" \
               -e "proxy=${{ secrets.PROXY }}" \
-              fitbot; then
-              echo "✅ Success on attempt $i"
-              exit 0
-            else
-              echo "❌ Failed on attempt $i"
-              if [ $i -eq 3 ]; then
-                echo "💥 All 3 attempts failed"
-                exit 1
-              fi
-            fi
+              fitbot
+            echo "Attempt $i completed"
           done
