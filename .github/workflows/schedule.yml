@@ -111,4 +111,8 @@ jobs:
               -e "proxy=${{ secrets.PROXY }}" \
               fitbot
             echo "Attempt $i completed"
+            if [ $i -lt 5 ]; then
+              echo "⏳ Waiting 5 seconds before next attempt..."
+              sleep 5
+            fi
           done
