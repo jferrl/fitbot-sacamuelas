@@ -1,6 +1,9 @@
 name: FitBot (daily)
 
 on:
+  schedule:
+    # Run at 8:00 UTC (10:00 Madrid time) - when booking window opens
+    - cron: '0 8 * * *'
   workflow_dispatch:
 
 jobs:
@@ -96,13 +99,19 @@ jobs:
         run: docker load -i /tmp/fitbot-image.tar
       
       - name: Run fitbot for ${{ matrix.user.name }} (with retry)
-        timeout-minutes: 5
+        timeout-minutes: 10
         env:
           BOOKING_GOALS_JSON: ${{ matrix.user.booking_goals_raw }}
         run: |
+          # Small initial delay to ensure we're past the exact opening time
+          echo "⏳ Waiting 10 seconds to ensure booking window is open..."
+          sleep 10
+          
           i=1
-          while true; do
-            echo "=== Attempt $i for ${{ matrix.user.name }} ==="
+          max_attempts=5
+          
+          while [ $i -le $max_attempts ]; do
+            echo "=== Attempt $i/$max_attempts for ${{ matrix.user.name }} ==="
             OUTPUT=$(docker run \
               -e "email=${{ secrets[matrix.user.email_secret] }}" \
               -e "password=${{ secrets[matrix.user.password_secret] }}" \
@@ -122,8 +131,26 @@ jobs:
               echo "❌ FATAL ERROR: Non-retriable error found on attempt $i"
               echo "$OUTPUT"
               exit 1
+            elif echo "$OUTPUT" | grep -q "Too soon to book the class"; then
+              echo "⏰ TOO SOON: Booking window not yet open on attempt $i"
+              if [ $i -lt $max_attempts ]; then
+                # Shorter delays since we're running at the right time: 10s, 20s, 40s, 80s
+                delay=$((10 * (2 ** ($i - 1))))
+                echo "⏳ Waiting $delay seconds before next attempt..."
+                sleep $delay
+              fi
             else
-              echo "❌ Attempt $i completed - continuing..."
-              i=$((i + 1))
+              echo "❌ UNKNOWN ERROR: Attempt $i failed with unknown error"
+              if [ $i -lt $max_attempts ]; then
+                # Shorter delay for unknown errors: 15s, 30s, 60s, 120s
+                delay=$((15 * (2 ** ($i - 1))))
+                echo "⏳ Waiting $delay seconds before next attempt..."
+                sleep $delay
+              fi
             fi
+            
+            i=$((i + 1))
           done
+          
+          echo "❌ FAILED: Maximum attempts ($max_attempts) reached without success"
+          exit 1
