@@ -1,9 +1,6 @@
 name: FitBot (daily)
 
 on:
-  schedule:
-    # Run at 8:00 UTC (10:00 Madrid time) - when booking window opens
-    - cron: '0 8 * * *'
   workflow_dispatch:
 
 jobs:
@@ -127,7 +124,10 @@ jobs:
             if echo "$OUTPUT" | grep -q "Class booked successfully\|Class already booked. Nothing to do"; then
               echo "✅ SUCCESS: Booking completed successfully on attempt $i"
               exit 0
-            elif echo "$OUTPUT" | grep -q "There is no booking-goal for\|No class with the text\|Box is closed\|No credit available\|Too many wrong attempts\|Incorrect credentials"; then
+            elif echo "$OUTPUT" | grep -q "There is no booking-goal for"; then
+              echo "ℹ️ INFO: No booking goal configured for this day on attempt $i"
+              exit 0
+            elif echo "$OUTPUT" | grep -q "No class with the text\|Box is closed\|No credit available\|Too many wrong attempts\|Incorrect credentials"; then
               echo "❌ FATAL ERROR: Non-retriable error found on attempt $i"
               echo "$OUTPUT"
               exit 1
