@@ -101,7 +101,7 @@ jobs:
           BOOKING_GOALS_JSON: ${{ matrix.user.booking_goals_raw }}
         run: |
           # Small initial delay to ensure we're past the exact opening time
-          echo "⏳ Waiting 10 seconds to ensure booking window is open..."
+          echo "⏳ Waiting 15 seconds to ensure booking window is open..."
           sleep 15
           
           i=1
