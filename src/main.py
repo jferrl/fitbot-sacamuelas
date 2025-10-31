@@ -1,5 +1,6 @@
 import argparse
 import json
+import time
 from datetime import datetime, timedelta
 
 
@@ -11,6 +12,36 @@ from exceptions import (
 )
 from exceptions import BookingFailed
 from logger import logger
+
+
+def wait_until_exact_time(target_time: datetime, max_wait_seconds: int = 300):
+    """
+    Wait until the exact target time is reached.
+    
+    Args:
+        target_time: The datetime to wait until
+        max_wait_seconds: Maximum seconds to wait (default 300 = 5 minutes)
+    """
+    now = datetime.now()
+    wait_seconds = (target_time - now).total_seconds()
+    
+    if wait_seconds <= 0:
+        logger.info(f"Target time {target_time.strftime('%Y-%m-%d %H:%M:%S')} has already passed. Executing immediately.")
+        return
+    
+    if wait_seconds > max_wait_seconds:
+        logger.warning(
+            f"Target time is {wait_seconds:.1f}s away (>{max_wait_seconds}s). "
+            f"Consider triggering the job closer to booking time. Executing immediately."
+        )
+        return
+    
+    logger.info(
+        f"Waiting {wait_seconds:.2f} seconds until booking window opens at "
+        f"{target_time.strftime('%Y-%m-%d %H:%M:%S')}..."
+    )
+    time.sleep(wait_seconds)
+    logger.info("Booking window is now open! Executing booking...")
 
 
 def get_booking_goal_time(day: datetime, booking_goals):
@@ -45,16 +76,61 @@ def main(
     booking_goals,
     box_name,
     box_id,
-    days_in_advance,
+    days_in_advance=None,
+    hours_in_advance=None,
     family_id=None,
     proxy=None,
+    wait_for_exact_time=False,
 ):
-    target_day = datetime.today() + timedelta(days=days_in_advance)
+    """
+    Main booking function.
+    
+    Args:
+        email: User email
+        password: User password
+        booking_goals: Dict with booking goals by day of week
+        box_name: Name of the box
+        box_id: ID of the box
+        days_in_advance: Days in advance to book (deprecated, use hours_in_advance)
+        hours_in_advance: Hours in advance to book (e.g., 46 for 46 hours)
+        family_id: Optional family member ID
+        proxy: Optional proxy URL
+        wait_for_exact_time: If True, wait until exact booking window opening time
+    """
+    # Calculate target day using hours_in_advance or fallback to days_in_advance
+    if hours_in_advance is not None:
+        advance_timedelta = timedelta(hours=hours_in_advance)
+    elif days_in_advance is not None:
+        advance_timedelta = timedelta(days=days_in_advance)
+    else:
+        raise ValueError("Either hours_in_advance or days_in_advance must be provided")
+    
+    target_day = datetime.now() + advance_timedelta
+    
     try:
         target_time, target_name = get_booking_goal_time(target_day, booking_goals)
     except NoBookingGoal as e:
         logger.info(str(e))
         return
+    
+    # Parse the target class time (e.g., "0800" -> 08:00)
+    class_hour = int(target_time[:2])
+    class_minute = int(target_time[2:])
+    class_datetime = target_day.replace(hour=class_hour, minute=class_minute, second=0, microsecond=0)
+    
+    # Calculate when booking window opens (e.g., 46 hours before class)
+    if hours_in_advance is not None:
+        booking_opens_at = class_datetime - timedelta(hours=hours_in_advance)
+    else:
+        booking_opens_at = class_datetime - timedelta(days=days_in_advance)
+    
+    logger.info(f"Target class: {class_datetime.strftime('%A, %Y-%m-%d at %H:%M')} ({target_name})")
+    logger.info(f"Booking window opens: {booking_opens_at.strftime('%A, %Y-%m-%d at %H:%M:%S')}")
+    
+    # Wait until exact booking time if requested
+    if wait_for_exact_time:
+        wait_until_exact_time(booking_opens_at)
+    
     client = AimHarderClient(
         email=email, password=password, box_id=box_id, box_name=box_name, proxy=proxy
     )
@@ -78,7 +154,9 @@ if __name__ == "__main__":
      --password 1234
      --box-name lahuellacrossfit
      --box-id 3984
-     --booking-goal '{"0":{"time": "1815", "name": "Provenza"}}'
+     --booking-goals '{"0":{"time": "1815", "name": "Provenza"}}'
+     --hours-in-advance 46
+     --wait-for-exact-time
      --family-id 123456
      --proxy socks5://89.58.45.94:34472
     """
@@ -88,7 +166,26 @@ if __name__ == "__main__":
     parser.add_argument("--booking-goals", required=True, type=json.loads)
     parser.add_argument("--box-name", required=True, type=str)
     parser.add_argument("--box-id", required=True, type=int)
-    parser.add_argument("--days-in-advance", required=True, type=int, default=3)
+    parser.add_argument(
+        "--days-in-advance",
+        required=False,
+        type=int,
+        default=None,
+        help="Days in advance to book (deprecated, use --hours-in-advance)",
+    )
+    parser.add_argument(
+        "--hours-in-advance",
+        required=False,
+        type=float,
+        default=None,
+        help="Hours in advance to book (e.g., 46 for 46 hours, supports decimals)",
+    )
+    parser.add_argument(
+        "--wait-for-exact-time",
+        action="store_true",
+        default=False,
+        help="Wait until exact booking window opening time before executing",
+    )
     parser.add_argument("--proxy", required=False, type=str, default=None)
     parser.add_argument(
         "--family-id",
@@ -98,5 +195,10 @@ if __name__ == "__main__":
         help="ID of the family member (optional)",
     )
     args = parser.parse_args()
+    
+    # Validate that at least one advance parameter is provided
+    if args.hours_in_advance is None and args.days_in_advance is None:
+        parser.error("Either --hours-in-advance or --days-in-advance must be provided")
+    
     input = {key: value for key, value in args.__dict__.items() if value != ""}
     main(**input)

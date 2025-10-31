@@ -42,42 +42,42 @@ jobs:
             password_secret: AH_PASSWORD
             box_name: crossfitgerak
             box_id: 10287
-            days_in_advance: 2
+            hours_in_advance: 46
             booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},"2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},"4":{"time":"0800","name":"CrossFit"}}'
           - name: "Deeiif"
             email_secret: ROMA_EMAIL
             password_secret: ROMA_PASSWORD
             box_name: crossfitgerak
             box_id: 10287
-            days_in_advance: 2
+            hours_in_advance: 46
             booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},"2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},"4":{"time":"0800","name":"CrossFit"}}'
           - name: "Anton"
             email_secret: ANTON_EMAIL
             password_secret: ANTON_PASSWORD
             box_name: crossfitgerak
             box_id: 10287
-            days_in_advance: 2
+            hours_in_advance: 46
             booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},"2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},"4":{"time":"0800","name":"CrossFit"}}'
           - name: "Maria"
             email_secret: MARIA_EMAIL
             password_secret: MARIA_PASSWORD
             box_name: crossfitgerak
             box_id: 10287
-            days_in_advance: 2
+            hours_in_advance: 46
             booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},"2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},"4":{"time":"0800","name":"CrossFit"}}'
           - name: "Adrian"
             email_secret: ADRIAN_EMAIL
             password_secret: ADRIAN_PASSWORD
             box_name: crossfitgerak
             box_id: 10287
-            days_in_advance: 2
+            hours_in_advance: 46
             booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},"2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},"4":{"time":"0800","name":"CrossFit"}}'
           - name: "Adrian Lombas"
             email_secret: ADRIAN_LOMBAS_EMAIL
             password_secret: ADRIAN_LOMBAS_PASSWORD
             box_name: crossfitgerak
             box_id: 10287
-            days_in_advance: 2
+            hours_in_advance: 46
             booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},"2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},"4":{"time":"0800","name":"CrossFit"}}'
       fail-fast: false  # Continue running other jobs even if one fails
     name: Run fitbot for ${{ matrix.user.name }}
@@ -95,62 +95,43 @@ jobs:
       - name: Load Docker image
         run: docker load -i /tmp/fitbot-image.tar
       
-      - name: Run fitbot for ${{ matrix.user.name }} (with retry)
+      - name: Run fitbot for ${{ matrix.user.name }}
         timeout-minutes: 10
         env:
           BOOKING_GOALS_JSON: ${{ matrix.user.booking_goals_raw }}
         run: |
-          # Small initial delay to ensure we're past the exact opening time
-          echo "⏳ Waiting 15 seconds to ensure booking window is open..."
-          sleep 15
+          echo "🚀 Running fitbot with precise timing for ${{ matrix.user.name }}..."
           
-          i=1
-          max_attempts=5
+          OUTPUT=$(docker run \
+            -e "email=${{ secrets[matrix.user.email_secret] }}" \
+            -e "password=${{ secrets[matrix.user.password_secret] }}" \
+            -e "booking-goals=$BOOKING_GOALS_JSON" \
+            -e "box-name=${{ matrix.user.box_name }}" \
+            -e "box-id=${{ matrix.user.box_id }}" \
+            -e "hours-in-advance=${{ matrix.user.hours_in_advance }}" \
+            -e "wait-for-exact-time=true" \
+            -e "proxy=${{ secrets.PROXY }}" \
+            fitbot 2>&1)
           
-          while [ $i -le $max_attempts ]; do
-            echo "=== Attempt $i/$max_attempts for ${{ matrix.user.name }} ==="
-            OUTPUT=$(docker run \
-              -e "email=${{ secrets[matrix.user.email_secret] }}" \
-              -e "password=${{ secrets[matrix.user.password_secret] }}" \
-              -e "booking-goals=$BOOKING_GOALS_JSON" \
-              -e "box-name=${{ matrix.user.box_name }}" \
-              -e "box-id=${{ matrix.user.box_id }}" \
-              -e "days-in-advance=${{ matrix.user.days_in_advance }}" \
-              -e "proxy=${{ secrets.PROXY }}" \
-              fitbot 2>&1)
-            
-            echo "$OUTPUT"
-            
-            if echo "$OUTPUT" | grep -q "Class booked successfully\|Class already booked. Nothing to do"; then
-              echo "✅ SUCCESS: Booking completed successfully on attempt $i"
-              exit 0
-            elif echo "$OUTPUT" | grep -q "There is no booking-goal for"; then
-              echo "ℹ️ INFO: No booking goal configured for this day on attempt $i"
-              exit 0
-            elif echo "$OUTPUT" | grep -q "No class with the text\|Box is closed\|No credit available\|Too many wrong attempts\|Incorrect credentials"; then
-              echo "❌ FATAL ERROR: Non-retriable error found on attempt $i"
-              echo "$OUTPUT"
-              exit 1
-            elif echo "$OUTPUT" | grep -q "Too soon to book the class"; then
-              echo "⏰ TOO SOON: Booking window not yet open on attempt $i"
-              if [ $i -lt $max_attempts ]; then
-                # Shorter delays since we're running at the right time: 10s, 20s, 40s, 80s
-                delay=$((10 * (2 ** ($i - 1))))
-                echo "⏳ Waiting $delay seconds before next attempt..."
-                sleep $delay
-              fi
-            else
-              echo "❌ UNKNOWN ERROR: Attempt $i failed with unknown error"
-              if [ $i -lt $max_attempts ]; then
-                # Shorter delay for unknown errors: 15s, 30s, 60s, 120s
-                delay=$((15 * (2 ** ($i - 1))))
-                echo "⏳ Waiting $delay seconds before next attempt..."
-                sleep $delay
-              fi
-            fi
-            
-            i=$((i + 1))
-          done
+          echo "$OUTPUT"
           
-          echo "❌ FAILED: Maximum attempts ($max_attempts) reached without success"
-          exit 1
+          # Check for success
+          if echo "$OUTPUT" | grep -q "Class booked successfully\|Class already booked. Nothing to do"; then
+            echo "✅ SUCCESS: Booking completed successfully"
+            exit 0
+          # Check for expected no-action scenarios
+          elif echo "$OUTPUT" | grep -q "There is no booking-goal for"; then
+            echo "ℹ️ INFO: No booking goal configured for this day"
+            exit 0
+          # Check for fatal errors
+          elif echo "$OUTPUT" | grep -q "No class with the text\|Box is closed\|No credit available\|Too many wrong attempts\|Incorrect credentials"; then
+            echo "❌ FATAL ERROR: Non-retriable error found"
+            exit 1
+          # Check for timing issues (shouldn't happen with wait-for-exact-time, but just in case)
+          elif echo "$OUTPUT" | grep -q "Too soon to book the class"; then
+            echo "⏰ ERROR: Booking window not yet open (unexpected with precise timing)"
+            exit 1
+          else
+            echo "❌ UNKNOWN ERROR: Booking failed with unknown error"
+            exit 1
+          fi

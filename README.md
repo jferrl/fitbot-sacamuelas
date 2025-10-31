@@ -6,9 +6,15 @@ Python script to automate your session bookings in [aimharder.com](http://aimhar
 
 Having docker installed you only need to do the following command:
 
+### Recommended: With precise timing (zero delay)
+```bash
+docker run -e email=your.email@mail.com -e password=1234 -e booking-goals={'\"0\":{\"time\":\"1815\"\,\"name\":\"Provenza\"}'} -e box-name=lahuellacrossfit -e box-id=3984 -e hours-in-advance=46 -e wait-for-exact-time=true pablobuenaposada/fitbot
+```
+
+### Legacy: Without precise timing
 ```bash
 docker run -e email=your.email@mail.com -e password=1234 -e booking-goals={'\"0\":{\"time\":\"1815\"\,\"name\":\"Provenza\"}'} -e box-name=lahuellacrossfit -e box-id=3984 -e days-in-advance=3 pablobuenaposada/fitbot
-````
+```
 Explanation about the fields:
 
 `email`: self-explanatory
@@ -37,7 +43,11 @@ which should be sent in this form:
 
 <img src="https://raw.github.com/pablobuenaposada/fitbot/master/inspect.png" data-canonical-src="https://raw.github.com/pablobuenaposada/fitbot/master/inspect.png" height="300" />
 
-`days-in-advance`: this is how many days in advance the script should try to book classes from, so for example, if this script is being run on a Monday and this field is set to 3 it's going to try book Thursday class from `booking_goals`
+`days-in-advance`: *(deprecated, use `hours-in-advance`)* This is how many days in advance the script should try to book classes from, so for example, if this script is being run on a Monday and this field is set to 3 it's going to try book Thursday class from `booking_goals`
+
+`hours-in-advance`: **Recommended**. This is how many hours in advance the script should try to book classes. For example, if set to 46, it will book classes exactly 46 hours before they start. This provides more precise control than `days-in-advance`. Supports decimal values (e.g., 46.5 for 46 hours and 30 minutes).
+
+`wait-for-exact-time`: Optional (default: false). When set to `true`, the script will calculate the exact moment when the booking window opens and wait until that precise time before attempting to book. This is the **recommended approach** for zero-delay bookings. Schedule your cron job to trigger 1-2 minutes before the booking window opens, and the script will handle the precise timing internally.
 
 `family-id`: Optional. This is the id for the person who wants to book a class in case the account has more than one member. 
 The value for this parameter can be found by inspecting the requests with the browser, as with the field `box-id`.
@@ -54,8 +64,38 @@ The United States seems to be heavily blocked (possibly only Azure IPs), so runn
 ## I'm a cheapo, can I run this without using my own infrastructure for free?
 Yes, you can! By using GitHub Actions, you can run this script without needing your own infrastructure. It can also be configured to run automatically on a schedule. For details about potential connection blocks and proxy usage, refer to the previous section.
 
-You can find an example of the GitHub Actions workflow in the [`.github/workflows/scheduled.yml`](.github/workflows/scheduled.yml) file.
+You can find an example of the GitHub Actions workflow in the [`.github/workflows/schedule.yml`](.github/workflows/schedule.yml) file.
 
 Clone this repo, get a proxy (https://www.freeproxy.world/), add your secrets, edit the file to your needs and it should be ready to go.
+
+## 🎯 Pro Tip: Zero-Delay Bookings with Precise Timing
+
+For the best booking experience with **zero delays**, use the new precise timing feature:
+
+1. **Set up your cron trigger**: Configure your cron app or GitHub Actions to trigger **1-2 minutes before** the booking window opens.
+   - Example: If booking opens at 10:00:00, trigger at 09:58:00
+
+2. **Enable precise timing**: Use `wait-for-exact-time=true` in your configuration
+
+3. **How it works**: 
+   - The script calculates the exact booking window opening time (e.g., Monday 08:00 class → booking opens Saturday 10:00 for 46h advance)
+   - Waits internally until that precise moment (within seconds)
+   - Executes the booking immediately when the window opens
+
+**Example workflow for 46-hour advance booking (opens at 10:00 AM):**
+```yaml
+hours_in_advance: 46
+booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"}}'
+# In Docker run command:
+-e "hours-in-advance=46"
+-e "wait-for-exact-time=true"
+```
+
+**Cron schedule (trigger at 09:58 AM):**
+```
+58 9 * * * /path/to/trigger-script.sh
+```
+
+This approach eliminates all delays and ensures you're booking at the exact millisecond the window opens! 🚀
 
 Enjoy!
