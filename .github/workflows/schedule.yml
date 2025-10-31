@@ -109,7 +109,6 @@ jobs:
             -e "box-name=${{ matrix.user.box_name }}" \
             -e "box-id=${{ matrix.user.box_id }}" \
             -e "hours-in-advance=${{ matrix.user.hours_in_advance }}" \
-            -e "wait-for-exact-time=true" \
             -e "proxy=${{ secrets.PROXY }}" \
             fitbot 2>&1)
           

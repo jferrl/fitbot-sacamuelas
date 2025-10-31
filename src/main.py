@@ -22,6 +22,8 @@ def wait_until_exact_time(target_time: datetime, max_wait_seconds: int = 300):
         target_time: The datetime to wait until
         max_wait_seconds: Maximum seconds to wait (default 300 = 5 minutes)
     """
+    logger.info("⏰ Precision timing mode activated - calculating wait time...")
+    
     now = datetime.now()
     wait_seconds = (target_time - now).total_seconds()
     
@@ -80,7 +82,6 @@ def main(
     hours_in_advance=None,
     family_id=None,
     proxy=None,
-    wait_for_exact_time=False,
 ):
     """
     Main booking function.
@@ -95,7 +96,6 @@ def main(
         hours_in_advance: Hours in advance to book (e.g., 46 for 46 hours)
         family_id: Optional family member ID
         proxy: Optional proxy URL
-        wait_for_exact_time: If True, wait until exact booking window opening time
     """
     # Calculate target day using hours_in_advance or fallback to days_in_advance
     if hours_in_advance is not None:
@@ -127,9 +127,8 @@ def main(
     logger.info(f"Target class: {class_datetime.strftime('%A, %Y-%m-%d at %H:%M')} ({target_name})")
     logger.info(f"Booking window opens: {booking_opens_at.strftime('%A, %Y-%m-%d at %H:%M:%S')}")
     
-    # Wait until exact booking time if requested
-    if wait_for_exact_time:
-        wait_until_exact_time(booking_opens_at)
+    # Wait until exact booking time (precision timing always enabled)
+    wait_until_exact_time(booking_opens_at)
     
     client = AimHarderClient(
         email=email, password=password, box_id=box_id, box_name=box_name, proxy=proxy
@@ -139,12 +138,30 @@ def main(
     if _class["bookState"] == 1:
         logger.info("Class already booked. Nothing to do")
         return
-    try:
-        client.book_class(target_day, _class["id"], family_id)
-    except BookingFailed as e:
-        logger.error(str(e))
-        return
-    logger.info("Class booked successfully")
+    
+    # Try to book with retry logic for "too soon" errors
+    max_retries = 3
+    retry_delay_seconds = 5
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            client.book_class(target_day, _class["id"], family_id)
+            logger.info("Class booked successfully")
+            return
+        except BookingFailed as e:
+            error_message = str(e)
+            
+            # If it's "too soon" error and we have retries left, wait and retry
+            if "Too soon to book" in error_message and attempt < max_retries:
+                logger.warning(
+                    f"Booking window not yet open (attempt {attempt}/{max_retries}). "
+                    f"Waiting {retry_delay_seconds} seconds before retry..."
+                )
+                time.sleep(retry_delay_seconds)
+            else:
+                # For other errors or if we've exhausted retries, fail
+                logger.error(f"Booking failed: {error_message}")
+                return
 
 
 if __name__ == "__main__":
@@ -156,9 +173,11 @@ if __name__ == "__main__":
      --box-id 3984
      --booking-goals '{"0":{"time": "1815", "name": "Provenza"}}'
      --hours-in-advance 46
-     --wait-for-exact-time
      --family-id 123456
      --proxy socks5://89.58.45.94:34472
+    
+    Note: Precision timing is always enabled. The script will wait until the exact
+    booking window opening time before executing.
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--email", required=True, type=str)
@@ -179,12 +198,6 @@ if __name__ == "__main__":
         type=float,
         default=None,
         help="Hours in advance to book (e.g., 46 for 46 hours, supports decimals)",
-    )
-    parser.add_argument(
-        "--wait-for-exact-time",
-        action="store_true",
-        default=False,
-        help="Wait until exact booking window opening time before executing",
     )
     parser.add_argument("--proxy", required=False, type=str, default=None)
     parser.add_argument(
