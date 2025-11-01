@@ -2,6 +2,7 @@ import argparse
 import json
 import time
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 
 from client import AimHarderClient
@@ -14,17 +15,22 @@ from exceptions import BookingFailed
 from logger import logger
 
 
-def wait_until_exact_time(target_time: datetime, max_wait_seconds: int = 300):
+def wait_until_exact_time(target_time: datetime, max_wait_seconds: int = 7200):
     """
     Wait until the exact target time is reached.
     
     Args:
-        target_time: The datetime to wait until
-        max_wait_seconds: Maximum seconds to wait (default 300 = 5 minutes)
+        target_time: The datetime to wait until (timezone-aware)
+        max_wait_seconds: Maximum seconds to wait (default 7200 = 2 hours)
     """
     logger.info("⏰ Precision timing mode activated - calculating wait time...")
     
-    now = datetime.now()
+    # Get current time in the same timezone as target_time
+    if target_time.tzinfo is not None:
+        now = datetime.now(target_time.tzinfo)
+    else:
+        now = datetime.now()
+    
     wait_seconds = (target_time - now).total_seconds()
     
     if wait_seconds <= 0:
@@ -39,7 +45,7 @@ def wait_until_exact_time(target_time: datetime, max_wait_seconds: int = 300):
         return
     
     logger.info(
-        f"Waiting {wait_seconds:.2f} seconds until booking window opens at "
+        f"Waiting {wait_seconds:.2f} seconds ({wait_seconds/60:.1f} minutes) until booking window opens at "
         f"{target_time.strftime('%Y-%m-%d %H:%M:%S')}..."
     )
     time.sleep(wait_seconds)
@@ -82,6 +88,7 @@ def main(
     hours_in_advance=None,
     family_id=None,
     proxy=None,
+    timezone="Europe/Madrid",
 ):
     """
     Main booking function.
@@ -96,7 +103,12 @@ def main(
         hours_in_advance: Hours in advance to book (e.g., 46 for 46 hours)
         family_id: Optional family member ID
         proxy: Optional proxy URL
+        timezone: Timezone for class times (default: Europe/Madrid)
     """
+    # Use timezone-aware datetime
+    tz = ZoneInfo(timezone)
+    now = datetime.now(tz)
+    
     # Calculate target day using hours_in_advance or fallback to days_in_advance
     if hours_in_advance is not None:
         advance_timedelta = timedelta(hours=hours_in_advance)
@@ -105,7 +117,7 @@ def main(
     else:
         raise ValueError("Either hours_in_advance or days_in_advance must be provided")
     
-    target_day = datetime.now() + advance_timedelta
+    target_day = now + advance_timedelta
     
     try:
         target_time, target_name = get_booking_goal_time(target_day, booking_goals)
@@ -124,8 +136,9 @@ def main(
     else:
         booking_opens_at = class_datetime - timedelta(days=days_in_advance)
     
-    logger.info(f"Target class: {class_datetime.strftime('%A, %Y-%m-%d at %H:%M')} ({target_name})")
-    logger.info(f"Booking window opens: {booking_opens_at.strftime('%A, %Y-%m-%d at %H:%M:%S')}")
+    logger.info(f"Target class: {class_datetime.strftime('%A, %Y-%m-%d at %H:%M %Z')} ({target_name})")
+    logger.info(f"Booking window opens: {booking_opens_at.strftime('%A, %Y-%m-%d at %H:%M:%S %Z')}")
+    logger.info(f"Current time: {now.strftime('%A, %Y-%m-%d at %H:%M:%S %Z')}")
     
     # Wait until exact booking time (precision timing always enabled)
     wait_until_exact_time(booking_opens_at)
@@ -198,6 +211,13 @@ if __name__ == "__main__":
         type=float,
         default=None,
         help="Hours in advance to book (e.g., 46 for 46 hours, supports decimals)",
+    )
+    parser.add_argument(
+        "--timezone",
+        required=False,
+        type=str,
+        default="Europe/Madrid",
+        help="Timezone for class times (default: Europe/Madrid)",
     )
     parser.add_argument("--proxy", required=False, type=str, default=None)
     parser.add_argument(

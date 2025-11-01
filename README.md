@@ -72,15 +72,16 @@ Clone this repo, get a proxy (https://www.freeproxy.world/), add your secrets, e
 
 The script now features **automatic precise timing** - no configuration needed! 
 
-1. **Set up your cron trigger**: Configure your cron app or GitHub Actions to trigger **1-2 minutes before** the booking window opens.
-   - Example: If booking opens at 10:00:00, trigger at 09:58:00
+1. **Set up your cron trigger**: Configure your cron app or GitHub Actions to trigger **1-2 hours before** the booking window opens (to account for timezone differences).
+   - Example: If booking opens at 10:00:00 CET, trigger at 09:00:00 UTC (08:00-09:00 UTC is safe)
+   - **Important**: GitHub Actions runs in UTC, so account for your local timezone offset
 
 2. **How it works automatically**: 
    - The script calculates the exact booking window opening time (e.g., Monday 08:00 class → booking opens Saturday 10:00 for 46h advance)
-   - Waits internally until that precise moment (within seconds)
+   - Waits internally for up to 2 hours until that precise moment
    - Executes the booking immediately when the window opens
 
-**Example workflow for 46-hour advance booking (opens at 10:00 AM):**
+**Example workflow for 46-hour advance booking (opens at 10:00 AM CET):**
 ```yaml
 hours_in_advance: 46
 booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"}}'
@@ -88,9 +89,11 @@ booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"}}'
 -e "hours-in-advance=46"
 ```
 
-**Cron schedule (trigger at 09:58 AM):**
+**Cron schedule (trigger at 09:00 AM UTC for 10:00 CET opening):**
 ```
-58 9 * * * /path/to/trigger-script.sh
+# For Spain (CET/CEST), booking opens at 10:00 local = 09:00 UTC (winter) or 08:00 UTC (summer)
+# Trigger 1 hour early to be safe:
+0 8 * * * /path/to/trigger-script.sh
 ```
 
 **Precision timing is always enabled** - the script eliminates all delays and ensures you're booking at the exact millisecond the window opens! 🚀
