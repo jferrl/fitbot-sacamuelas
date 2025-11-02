@@ -141,6 +141,8 @@ def main(
     logger.info(f"Current time: {now.strftime('%A, %Y-%m-%d at %H:%M:%S %Z')}")
     
     # Wait until exact booking time (precision timing always enabled)
+    # First attempt will be at exact opening time (e.g., 10:00:00)
+    # Retries will add delays if server is not ready yet
     wait_until_exact_time(booking_opens_at)
     
     client = AimHarderClient(
@@ -153,8 +155,10 @@ def main(
         return
     
     # Try to book with retry logic for "too soon" errors
+    # IMPORTANT: AimHarder blocks after ~4 attempts, so keep retries limited
+    # First attempt is at exact time (10:00:00), retries add 15s delays
     max_retries = 3
-    retry_delay_seconds = 5
+    retry_delay_seconds = 10
     
     for attempt in range(1, max_retries + 1):
         try:
@@ -167,8 +171,8 @@ def main(
             # If it's "too soon" error and we have retries left, wait and retry
             if "Too soon to book" in error_message and attempt < max_retries:
                 logger.warning(
-                    f"Booking window not yet open (attempt {attempt}/{max_retries}). "
-                    f"Waiting {retry_delay_seconds} seconds before retry..."
+                    f"Server not ready yet (attempt {attempt}/{max_retries}). "
+                    f"Waiting {retry_delay_seconds}s before retry (server needs time to open bookings)..."
                 )
                 time.sleep(retry_delay_seconds)
             else:
