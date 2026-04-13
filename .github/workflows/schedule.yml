@@ -51,13 +51,6 @@ jobs:
             box_id: 10287
             hours_in_advance: 46
             booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},"2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},"4":{"time":"0800","name":"CrossFit"}}'
-          - name: "Anton"
-            email_secret: ANTON_EMAIL
-            password_secret: ANTON_PASSWORD
-            box_name: crossfitgerak
-            box_id: 10287
-            hours_in_advance: 46
-            booking_goals_raw: '{"0":{"time":"0800","name":"CrossFit"},"1":{"time":"0800","name":"CrossFit"},"2":{"time":"0800","name":"CrossFit"},"3":{"time":"0800","name":"CrossFit"},"4":{"time":"0800","name":"CrossFit"}}'
           - name: "Maria"
             email_secret: MARIA_EMAIL
             password_secret: MARIA_PASSWORD
